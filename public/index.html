@@ -257,11 +257,17 @@
             <strong>💡 Подсказка:</strong> Нажмите на видео из списка ниже или вставьте ссылку на m3u8 файл в поле выше.
             <br><br>
             <strong>Доступные варианты сегментации:</strong>
-            <br>• <strong>500ms</strong> - сегменты по 0.5 секунды (максимальная точность)
-            <br>• <strong>1s</strong> - сегменты по 1 секунде (высокая точность)
-            <br>• <strong>4s</strong> - сегменты по 4 секунды (рекомендуется для обычного просмотра)
-            <br>• <strong>8s</strong> - сегменты по 8 секунд (экономия трафика)
-            <br>• <strong>12s</strong> - сегменты по 12 секунд (минимальный трафик)
+            <br>• <strong>Обычные варианты:</strong> все сегменты в нормальном качестве
+            <br>• <strong>🚀 FAST варианты:</strong> первый сегмент в ультра-низком качестве (160x90, 50kbps) для мгновенного старта, остальные - нормальные
+            <br><br>
+            <strong>Длительность сегментов:</strong>
+            <br>• <strong>500ms</strong> - 0.5 секунды (максимальная точность перемотки)
+            <br>• <strong>1s</strong> - 1 секунда (высокая точность)
+            <br>• <strong>4s</strong> - 4 секунды (рекомендуется для обычного просмотра)
+            <br>• <strong>8s</strong> - 8 секунд (экономия трафика)
+            <br>• <strong>12s</strong> - 12 секунд (минимальный трафик)
+            <br><br>
+            <strong>⚡ Эксперимент:</strong> Сравните время старта между обычными и FAST вариантами в консоли!
         </div>
     </div>
 
@@ -275,6 +281,57 @@
 
         // Определяем базовый URL API
         const API_BASE = window.location.origin;
+
+        // Переменная для отслеживания времени загрузки
+        let videoLoadStartTime = null;
+
+        // Отслеживание событий видео
+        video.addEventListener('loadstart', function() {
+            videoLoadStartTime = performance.now();
+            console.log('⏳ loadstart - Начало загрузки видео:', new Date().toISOString());
+        });
+
+        video.addEventListener('loadeddata', function() {
+            if (videoLoadStartTime) {
+                const duration = performance.now() - videoLoadStartTime;
+                console.log('📦 loadeddata - Первый кадр загружен за:', duration.toFixed(2), 'мс');
+            }
+        });
+
+        video.addEventListener('canplay', function() {
+            if (videoLoadStartTime) {
+                const duration = performance.now() - videoLoadStartTime;
+                console.log('✅ canplay - Видео готово к воспроизведению за:', duration.toFixed(2), 'мс');
+            }
+        });
+
+        video.addEventListener('canplaythrough', function() {
+            if (videoLoadStartTime) {
+                const duration = performance.now() - videoLoadStartTime;
+                console.log('✅ canplaythrough - Видео полностью готово за:', duration.toFixed(2), 'мс');
+            }
+        });
+
+        video.addEventListener('playing', function() {
+            if (videoLoadStartTime) {
+                const duration = performance.now() - videoLoadStartTime;
+                console.log('▶️ playing - ВОСПРОИЗВЕДЕНИЕ НАЧАЛОСЬ за:', duration.toFixed(2), 'мс');
+                console.log('⏱️ Общее время до старта воспроизведения:', duration.toFixed(2), 'мс', `(${(duration / 1000).toFixed(2)} сек)`);
+                console.log('---');
+            }
+        });
+
+        video.addEventListener('waiting', function() {
+            console.log('⏸️ waiting - Буферизация...');
+        });
+
+        video.addEventListener('stalled', function() {
+            console.log('⚠️ stalled - Загрузка приостановлена');
+        });
+
+        video.addEventListener('error', function(e) {
+            console.error('❌ Ошибка видео:', e);
+        });
 
         function showStatus(message, type = 'success') {
             status.textContent = message;
@@ -292,6 +349,11 @@
                 return;
             }
 
+            // Время начала загрузки
+            const loadStartTime = performance.now();
+            console.log('🎬 Начало загрузки видео:', new Date().toISOString());
+            console.log('📹 URL:', url);
+
             // Очищаем предыдущий HLS instance
             if (hls) {
                 hls.destroy();
@@ -308,6 +370,10 @@
                 hls.attachMedia(video);
 
                 hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    const manifestLoadTime = performance.now();
+                    const manifestDuration = manifestLoadTime - loadStartTime;
+                    console.log('📋 Манифест загружен за:', manifestDuration.toFixed(2), 'мс');
+                    
                     showStatus('Видео успешно загружено!', 'success');
                     video.play().catch(e => {
                         console.log('Autoplay prevented:', e);
@@ -316,6 +382,9 @@
 
                 hls.on(Hls.Events.ERROR, function(event, data) {
                     if (data.fatal) {
+                        const errorTime = performance.now();
+                        const errorDuration = errorTime - loadStartTime;
+                        console.error('❌ Ошибка через:', errorDuration.toFixed(2), 'мс');
                         showStatus(`Ошибка загрузки видео: ${data.type}`, 'error');
                         console.error('HLS Error:', data);
                     }
@@ -324,6 +393,10 @@
                 // Для Safari
                 video.src = url;
                 video.addEventListener('loadedmetadata', function() {
+                    const metadataLoadTime = performance.now();
+                    const metadataDuration = metadataLoadTime - loadStartTime;
+                    console.log('📋 Метаданные загружены за:', metadataDuration.toFixed(2), 'мс');
+                    
                     showStatus('Видео успешно загружено!', 'success');
                     video.play().catch(e => {
                         console.log('Autoplay prevented:', e);
@@ -359,29 +432,38 @@
                         const videoItem = document.createElement('div');
                         videoItem.className = 'video-item';
                         
-                        const fullUrl500ms = `${API_BASE}${video.hls_500ms}`;
-                        const fullUrl1s = `${API_BASE}${video.hls_1s}`;
-                        const fullUrl4s = `${API_BASE}${video.hls_4s}`;
-                        const fullUrl8s = `${API_BASE}${video.hls_8s}`;
-                        const fullUrl12s = `${API_BASE}${video.hls_12s}`;
-                        
                         videoItem.innerHTML = `
                             <div class="video-name">📹 ${video.name}</div>
                             <div class="video-links">
-                                <a href="#" class="video-link" onclick="event.preventDefault(); selectVideoLink('${fullUrl500ms}', '${video.name}', this)">
+                                <a href="#" class="video-link" onclick="event.preventDefault(); selectVideoLink('${API_BASE}${video.hls_500ms}', '${video.name}', this)">
                                     ⚡ 500ms
                                 </a>
-                                <a href="#" class="video-link" onclick="event.preventDefault(); selectVideoLink('${fullUrl1s}', '${video.name}', this)">
+                                <a href="#" class="video-link" style="background: #fff3cd; border-color: #ffc107;" onclick="event.preventDefault(); selectVideoLink('${API_BASE}${video.hls_500ms_fast}', '${video.name}', this)">
+                                    🚀 500ms FAST
+                                </a>
+                                <a href="#" class="video-link" onclick="event.preventDefault(); selectVideoLink('${API_BASE}${video.hls_1s}', '${video.name}', this)">
                                     ⚡ 1s
                                 </a>
-                                <a href="#" class="video-link" onclick="event.preventDefault(); selectVideoLink('${fullUrl4s}', '${video.name}', this)">
+                                <a href="#" class="video-link" style="background: #fff3cd; border-color: #ffc107;" onclick="event.preventDefault(); selectVideoLink('${API_BASE}${video.hls_1s_fast}', '${video.name}', this)">
+                                    🚀 1s FAST
+                                </a>
+                                <a href="#" class="video-link" onclick="event.preventDefault(); selectVideoLink('${API_BASE}${video.hls_4s}', '${video.name}', this)">
                                     🎬 4s
                                 </a>
-                                <a href="#" class="video-link" onclick="event.preventDefault(); selectVideoLink('${fullUrl8s}', '${video.name}', this)">
+                                <a href="#" class="video-link" style="background: #fff3cd; border-color: #ffc107;" onclick="event.preventDefault(); selectVideoLink('${API_BASE}${video.hls_4s_fast}', '${video.name}', this)">
+                                    🚀 4s FAST
+                                </a>
+                                <a href="#" class="video-link" onclick="event.preventDefault(); selectVideoLink('${API_BASE}${video.hls_8s}', '${video.name}', this)">
                                     🎬 8s
                                 </a>
-                                <a href="#" class="video-link" onclick="event.preventDefault(); selectVideoLink('${fullUrl12s}', '${video.name}', this)">
+                                <a href="#" class="video-link" style="background: #fff3cd; border-color: #ffc107;" onclick="event.preventDefault(); selectVideoLink('${API_BASE}${video.hls_8s_fast}', '${video.name}', this)">
+                                    🚀 8s FAST
+                                </a>
+                                <a href="#" class="video-link" onclick="event.preventDefault(); selectVideoLink('${API_BASE}${video.hls_12s}', '${video.name}', this)">
                                     🎬 12s
+                                </a>
+                                <a href="#" class="video-link" style="background: #fff3cd; border-color: #ffc107;" onclick="event.preventDefault(); selectVideoLink('${API_BASE}${video.hls_12s_fast}', '${video.name}', this)">
+                                    🚀 12s FAST
                                 </a>
                             </div>
                         `;

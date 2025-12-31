@@ -39,10 +39,15 @@ app.get('/api/videos', (req, res) => {
         baseName: baseName,
         original: `/videos/${file}`,
         hls_500ms: `/videos/${baseName}_500ms/playlist.m3u8`,
+        hls_500ms_fast: `/videos/${baseName}_500ms_fast/playlist.m3u8`,
         hls_1s: `/videos/${baseName}_1s/playlist.m3u8`,
+        hls_1s_fast: `/videos/${baseName}_1s_fast/playlist.m3u8`,
         hls_4s: `/videos/${baseName}_4s/playlist.m3u8`,
+        hls_4s_fast: `/videos/${baseName}_4s_fast/playlist.m3u8`,
         hls_8s: `/videos/${baseName}_8s/playlist.m3u8`,
-        hls_12s: `/videos/${baseName}_12s/playlist.m3u8`
+        hls_8s_fast: `/videos/${baseName}_8s_fast/playlist.m3u8`,
+        hls_12s: `/videos/${baseName}_12s/playlist.m3u8`,
+        hls_12s_fast: `/videos/${baseName}_12s_fast/playlist.m3u8`
       };
     });
 
@@ -70,10 +75,15 @@ app.get('/api/videos/:videoName', (req, res) => {
       baseName: baseName,
       original: `/videos/${videoName}`,
       hls_500ms: `/videos/${baseName}_500ms/playlist.m3u8`,
+      hls_500ms_fast: `/videos/${baseName}_500ms_fast/playlist.m3u8`,
       hls_1s: `/videos/${baseName}_1s/playlist.m3u8`,
+      hls_1s_fast: `/videos/${baseName}_1s_fast/playlist.m3u8`,
       hls_4s: `/videos/${baseName}_4s/playlist.m3u8`,
+      hls_4s_fast: `/videos/${baseName}_4s_fast/playlist.m3u8`,
       hls_8s: `/videos/${baseName}_8s/playlist.m3u8`,
-      hls_12s: `/videos/${baseName}_12s/playlist.m3u8`
+      hls_8s_fast: `/videos/${baseName}_8s_fast/playlist.m3u8`,
+      hls_12s: `/videos/${baseName}_12s/playlist.m3u8`,
+      hls_12s_fast: `/videos/${baseName}_12s_fast/playlist.m3u8`
     };
 
     res.json({ video });
