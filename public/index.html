@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Streaming Player</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .video-container {
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .controls {
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: 'Courier New', monospace;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .video-list {
+            margin-bottom: 25px;
+        }
+
+        .video-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .video-item:hover {
+            border-color: #667eea;
+            background: #f0f2ff;
+        }
+
+        .video-item.active {
+            border-color: #667eea;
+            background: #e8ebff;
+        }
+
+        .video-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .video-links {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .video-link {
+            padding: 6px 12px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #667eea;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .video-link:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loader.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Video Streaming Player</h1>
+
+        <div id="status" class="status"></div>
+
+        <div class="video-container">
+            <video id="video" controls></video>
+        </div>
+
+        <div class="controls">
+            <div class="form-group">
+                <label for="videoUrl">Ссылка на m3u8 видео:</label>
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        id="videoUrl" 
+                        placeholder="http://localhost:3000/videos/video_4s/playlist.m3u8"
+                    >
+                    <button onclick="loadVideo()">Загрузить</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="loader" id="loader">
+            <div class="spinner"></div>
+            <p>Загрузка списка видео...</p>
+        </div>
+
+        <div class="video-list" id="videoList"></div>
+
+        <div class="info">
+            <strong>💡 Подсказка:</strong> Нажмите на видео из списка ниже или вставьте ссылку на m3u8 файл в поле выше.
+            <br><br>
+            <strong>Доступные варианты сегментации:</strong>
+            <br>• <strong>500ms</strong> - сегменты по 0.5 секунды (максимальная точность)
+            <br>• <strong>1s</strong> - сегменты по 1 секунде (высокая точность)
+            <br>• <strong>4s</strong> - сегменты по 4 секунды (рекомендуется для обычного просмотра)
+            <br>• <strong>8s</strong> - сегменты по 8 секунд (экономия трафика)
+            <br>• <strong>12s</strong> - сегменты по 12 секунд (минимальный трафик)
+        </div>
+    </div>
+
+    <script>
+        let hls = null;
+        const video = document.getElementById('video');
+        const videoUrl = document.getElementById('videoUrl');
+        const status = document.getElementById('status');
+        const videoList = document.getElementById('videoList');
+        const loader = document.getElementById('loader');
+
+        // Определяем базовый URL API
+        const API_BASE = window.location.origin;
+
+        function showStatus(message, type = 'success') {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 5000);
+        }
+
+        function loadVideo() {
+            const url = videoUrl.value.trim();
+            
+            if (!url) {
+                showStatus('Пожалуйста, введите ссылку на видео', 'error');
+                return;
+            }
+
+            // Очищаем предыдущий HLS instance
+            if (hls) {
+                hls.destroy();
+            }
+
+            if (Hls.isSupported()) {
+                hls = new Hls({
+                    debug: false,
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                });
+
+                hls.loadSource(url);
+                hls.attachMedia(video);
+
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    showStatus('Видео успешно загружено!', 'success');
+                    video.play().catch(e => {
+                        console.log('Autoplay prevented:', e);
+                    });
+                });
+
+                hls.on(Hls.Events.ERROR, function(event, data) {
+                    if (data.fatal) {
+                        showStatus(`Ошибка загрузки видео: ${data.type}`, 'error');
+                        console.error('HLS Error:', data);
+                    }
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // Для Safari
+                video.src = url;
+                video.addEventListener('loadedmetadata', function() {
+                    showStatus('Видео успешно загружено!', 'success');
+                    video.play().catch(e => {
+                        console.log('Autoplay prevented:', e);
+                    });
+                });
+            } else {
+                showStatus('Ваш браузер не поддерживает HLS', 'error');
+            }
+        }
+
+        function selectVideo(url, videoName) {
+            videoUrl.value = url;
+            loadVideo();
+
+            // Подсветка активного видео
+            document.querySelectorAll('.video-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+        }
+
+        async function loadVideoList() {
+            loader.classList.add('active');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/videos`);
+                const data = await response.json();
+
+                if (data.videos && data.videos.length > 0) {
+                    videoList.innerHTML = '<h3 style="margin-bottom: 15px; color: #333;">Доступные видео:</h3>';
+                    
+                    data.videos.forEach(video => {
+                        const videoItem = document.createElement('div');
+                        videoItem.className = 'video-item';
+                        
+                        const fullUrl500ms = `${API_BASE}${video.hls_500ms}`;
+                        const fullUrl1s = `${API_BASE}${video.hls_1s}`;
+                        const fullUrl4s = `${API_BASE}${video.hls_4s}`;
+                        const fullUrl8s = `${API_BASE}${video.hls_8s}`;
+                        const fullUrl12s = `${API_BASE}${video.hls_12s}`;
+                        
+                        videoItem.innerHTML = `
+                            <div class="video-name">📹 ${video.name}</div>
+                            <div class="video-links">
+                                <a href="#" class="video-link" onclick="event.preventDefault(); selectVideoLink('${fullUrl500ms}', '${video.name}', this)">
+                                    ⚡ 500ms
+                                </a>
+                                <a href="#" class="video-link" onclick="event.preventDefault(); selectVideoLink('${fullUrl1s}', '${video.name}', this)">
+                                    ⚡ 1s
+                                </a>
+                                <a href="#" class="video-link" onclick="event.preventDefault(); selectVideoLink('${fullUrl4s}', '${video.name}', this)">
+                                    🎬 4s
+                                </a>
+                                <a href="#" class="video-link" onclick="event.preventDefault(); selectVideoLink('${fullUrl8s}', '${video.name}', this)">
+                                    🎬 8s
+                                </a>
+                                <a href="#" class="video-link" onclick="event.preventDefault(); selectVideoLink('${fullUrl12s}', '${video.name}', this)">
+                                    🎬 12s
+                                </a>
+                            </div>
+                        `;
+                        
+                        videoList.appendChild(videoItem);
+                    });
+
+                    // Автоматически загружаем первое видео
+                    if (data.videos.length > 0) {
+                        const firstVideo = data.videos[0];
+                        const firstUrl = `${API_BASE}${firstVideo.hls_4s}`;
+                        videoUrl.value = firstUrl;
+                        loadVideo();
+                    }
+                } else {
+                    videoList.innerHTML = '<p style="color: #999; text-align: center;">Нет доступных видео. Добавьте видео в папку uploads/</p>';
+                }
+            } catch (error) {
+                console.error('Error loading videos:', error);
+                showStatus('Ошибка загрузки списка видео', 'error');
+                videoList.innerHTML = '<p style="color: #999; text-align: center;">Не удалось загрузить список видео</p>';
+            } finally {
+                loader.classList.remove('active');
+            }
+        }
+
+        function selectVideoLink(url, videoName, element) {
+            videoUrl.value = url;
+            loadVideo();
+            
+            // Подсветка активного элемента
+            const videoItem = element.closest('.video-item');
+            document.querySelectorAll('.video-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            videoItem.classList.add('active');
+        }
+
+        // Загрузка по Enter
+        videoUrl.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                loadVideo();
+            }
+        });
+
+        // Загружаем список видео при загрузке страницы
+        window.addEventListener('load', loadVideoList);
+    </script>
+</body>
+</html>
+
+

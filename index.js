@@ -11,6 +11,9 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Serve static files from public directory (HTML player)
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Serve static files from uploads directory
 app.use('/videos', express.static(path.join(__dirname, 'uploads')));
 
@@ -35,8 +38,11 @@ app.get('/api/videos', (req, res) => {
         name: file,
         baseName: baseName,
         original: `/videos/${file}`,
+        hls_500ms: `/videos/${baseName}_500ms/playlist.m3u8`,
+        hls_1s: `/videos/${baseName}_1s/playlist.m3u8`,
         hls_4s: `/videos/${baseName}_4s/playlist.m3u8`,
-        hls_1s: `/videos/${baseName}_1s/playlist.m3u8`
+        hls_8s: `/videos/${baseName}_8s/playlist.m3u8`,
+        hls_12s: `/videos/${baseName}_12s/playlist.m3u8`
       };
     });
 
@@ -63,8 +69,11 @@ app.get('/api/videos/:videoName', (req, res) => {
       name: videoName,
       baseName: baseName,
       original: `/videos/${videoName}`,
+      hls_500ms: `/videos/${baseName}_500ms/playlist.m3u8`,
+      hls_1s: `/videos/${baseName}_1s/playlist.m3u8`,
       hls_4s: `/videos/${baseName}_4s/playlist.m3u8`,
-      hls_1s: `/videos/${baseName}_1s/playlist.m3u8`
+      hls_8s: `/videos/${baseName}_8s/playlist.m3u8`,
+      hls_12s: `/videos/${baseName}_12s/playlist.m3u8`
     };
 
     res.json({ video });
@@ -89,7 +98,9 @@ async function startServer() {
     
     app.listen(PORT, () => {
       console.log(`Server is running on http://localhost:${PORT}`);
-      console.log(`API endpoints:`);
+      console.log(`\n🎬 Open in browser: http://localhost:${PORT}`);
+      console.log(`\nAPI endpoints:`);
+      console.log(`  - GET / - Video player interface`);
       console.log(`  - GET /health - Health check`);
       console.log(`  - GET /api/videos - List all videos`);
       console.log(`  - GET /api/videos/:videoName - Get specific video info`);

@@ -53,7 +53,7 @@ function createM3U8(videoPath, segmentDuration, outputDir) {
 }
 
 /**
- * Process a single video file and create both m3u8 variants
+ * Process a single video file and create all m3u8 variants
  * @param {string} videoPath - Path to the video file
  * @param {string} uploadsDir - Base uploads directory
  */
@@ -65,35 +65,43 @@ async function processVideo(videoPath, uploadsDir) {
   console.log(`Processing video: ${videoName}`);
   console.log('='.repeat(60));
 
+  // Define all segment durations to create
+  const segmentVariants = [
+    { duration: 0.5, suffix: '500ms' },
+    { duration: 1, suffix: '1s' },
+    { duration: 4, suffix: '4s' },
+    { duration: 8, suffix: '8s' },
+    { duration: 12, suffix: '12s' }
+  ];
+
   try {
-    // Create output directories
-    const output4sDir = path.join(uploadsDir, `${baseName}_4s`);
-    const output1sDir = path.join(uploadsDir, `${baseName}_1s`);
+    let allExist = true;
 
-    // Check if already processed
-    const playlist4s = path.join(output4sDir, 'playlist.m3u8');
-    const playlist1s = path.join(output1sDir, 'playlist.m3u8');
+    // Check if all variants already exist
+    for (const variant of segmentVariants) {
+      const outputDir = path.join(uploadsDir, `${baseName}_${variant.suffix}`);
+      const playlistPath = path.join(outputDir, 'playlist.m3u8');
+      if (!fsSync.existsSync(playlistPath)) {
+        allExist = false;
+        break;
+      }
+    }
 
-    const already4s = fsSync.existsSync(playlist4s);
-    const already1s = fsSync.existsSync(playlist1s);
-
-    if (already4s && already1s) {
-      console.log(`Video ${videoName} already processed. Skipping...`);
+    if (allExist) {
+      console.log(`Video ${videoName} already processed (all variants exist). Skipping...`);
       return;
     }
 
-    // Create m3u8 with 4-second segments
-    if (!already4s) {
-      await createM3U8(videoPath, 4, output4sDir);
-    } else {
-      console.log('4s variant already exists, skipping...');
-    }
+    // Create m3u8 variants for each segment duration
+    for (const variant of segmentVariants) {
+      const outputDir = path.join(uploadsDir, `${baseName}_${variant.suffix}`);
+      const playlistPath = path.join(outputDir, 'playlist.m3u8');
 
-    // Create m3u8 with 1-second segments
-    if (!already1s) {
-      await createM3U8(videoPath, 1, output1sDir);
-    } else {
-      console.log('1s variant already exists, skipping...');
+      if (!fsSync.existsSync(playlistPath)) {
+        await createM3U8(videoPath, variant.duration, outputDir);
+      } else {
+        console.log(`${variant.suffix} variant already exists, skipping...`);
+      }
     }
 
     console.log(`✓ Successfully processed ${videoName}`);
